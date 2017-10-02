@@ -1,0 +1,21 @@
+#! /usr/bin/env ruby
+
+=begin rdoc
+--------------------------------------------------------------------------------
+
+Read one or more VIVO log files, parse and analyze the timings records (from the
+Developer Panel options) and summarize the results in various ways.
+
+--------------------------------------------------------------------------------
+=end
+
+$LOAD_PATH.unshift File.expand_path('../../lib', __FILE__)
+require 'vivo_query_timings_analyzer'
+
+#
+# ---------------------------------------------------------
+# MAIN ROUTINE
+# ---------------------------------------------------------
+#
+
+VivoQueryTimingsAnalyzer::Main.new.run
