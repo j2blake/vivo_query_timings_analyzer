@@ -6,7 +6,6 @@ module VivoQueryTimingsAnalyzer
     def initialize(parameters, stats)
       @parameters = parameters
       @stats = stats
-      puts "BOGUS CanonicalQueryReport.initialize"
     end
     
     def format_interval(interval)
@@ -27,29 +26,30 @@ module VivoQueryTimingsAnalyzer
     def write
       puts @parameters.label
       puts
-      puts "Start time:    %s" % @stats.start.strftime("%T.%L")
-      puts "End time:      %s" % @stats.end.strftime("%T.%L")
+      puts "Start time:    %s" % @stats.start_time.strftime("%T.%L")
+      puts "End time:      %s" % @stats.end_time.strftime("%T.%L")
       puts "Elapsed time:  %s" % format_interval(@stats.elapsed)
       puts "Query time:    %s" % format_interval(@stats.query_total)
 
       puts
       puts
       puts "            Total Time  Occurences  Average Time  Minimum  Maximum"
-      @stats.forms.each_index do |i|
-        form = @stats.forms[i]
+      keys = @stats.forms.keys.sort
+      keys.each_index do |i|
+        form = @stats.forms[keys[i]]
         average = form.count == 0 ? 0.0 : form.total / form.count
-        puts "form %3d: %11.3f %11d %13.3f %9.3f %8.3f" % [i, form.total, form.count, average, form.minimum, form.maximum]  
+        puts "form %3d: %11.3f %11d %13.3f %9.3f %8.3f" % [i + 1, form.total, form.count, average, form.minimum, form.maximum]  
       end
       
-      total_time = @stats.forms.inject(0.0) { |sum, form| sum += form.total }
-      total_count = @stats.forms.inject(0) { |sum, form| sum += form.count }
+      total_time = @stats.forms.values.inject(0.0) { |sum, form| sum += form.total }
+      total_count = @stats.forms.values.inject(0) { |sum, form| sum += form.count }
       total_average = total_count == 0 ? 0.0 : total_time / total_count
       puts "TOTAL: %14.3f %11d %13.3f" % [total_time, total_count, total_average]
       
-      @stats.forms.each_index do |i|
-        form = @stats.forms[i]
+      keys.each_index do |i|
+        form = @stats.forms.values[i]
         puts 
-        puts "form %3d:" % i
+        puts "form %3d:" % (i + 1)
         puts  form.canonical_query
       end
       puts 

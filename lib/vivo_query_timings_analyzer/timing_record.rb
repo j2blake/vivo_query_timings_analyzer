@@ -1,50 +1,25 @@
-=begin
-
-Ask for the records, and it will go through the input source, ignoring any lines
-that are not parts of timing records and chunking any lines that are.
-
-=end
-
 module VivoQueryTimingsAnalyzer
-  class RawRecordParser
-    def initialize(input_source)
-      @input_source = input_source
-      @buffer = []
+  class TimingRecord
+    attr_reader :start_time
+    attr_reader :end_time
+    attr_reader :duration
+    attr_reader :query
+    
+    def initialize(str)
+      match = /^([-:,\s\d]+)
+               .*\[RDFServiceLogger\]\s+
+               ([.\d]+)
+               .*
+               (\[.*\])
+              /x.match(str)
+      @end_time = DateTime.strptime(match[1], "%Y-%m-%d %H:%M:%S,%L")
+      @duration = match[2].to_f
+      @start_time = @end_time - (@duration / 86400.0)
+      @query = match[3]
     end
     
-    def records(&block)
-      @input_source.lines do |line|
-        if @buffer.empty?
-          if /\[RDFServiceLogger\]/ =~ line
-            # start the buffer
-            give_it_up &block
-            @buffer << line
-          else
-            # ignore this line
-          end
-        else
-          if line.strip.empty?
-            # end of record
-            give_it_up &block
-          elsif /^\d{4}/ =~ line
-            # passed the end of the record
-            give_it_up &block
-            @input_source.unget(line)
-          else
-            # record continues
-            @buffer << line
-          end
-        end
-      end
-      # any left over?
-      give_it_up &block
-    end
-    
-    def give_it_up(&block)
-      if !@buffer.empty?
-        block.call(@buffer.join)
-        @buffer = []
-      end
+    def to_s
+      "TimingRecord[start_time=#{@start_time.strftime("%D %T.%L")}, end_time=#{@end_time.strftime("%D %T.%L")}, duration=#{@duration}, query=#{@query}"
     end
   end
 end
@@ -75,4 +50,5 @@ end
 
 2017-10-02 11:43:35,785 INFO  [RDFServiceLogger]    0.007 sparqlConstructQuery [CONSTRUCT {      <http://scholars.cornell.edu/individual/bogusGuy> ?inv ?value  } WHERE {      GRAPH ?gr {   
 
+Time.strptime("2000-10-31", "%Y-%m-%d")
 =end

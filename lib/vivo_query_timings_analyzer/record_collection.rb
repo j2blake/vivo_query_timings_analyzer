@@ -1,7 +1,12 @@
 module VivoQueryTimingsAnalyzer
   class RecordCollection
+    attr_reader :records
+    
     def initialize(parser)
-      puts "BOGUS RecordCollection.initialize"
+      @records = []
+      parser.records do |str|
+        @records << TimingRecord.new(str)
+      end
     end
   end
 end
