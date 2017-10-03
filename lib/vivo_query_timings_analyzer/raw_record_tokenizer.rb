@@ -1,10 +1,12 @@
 =begin
 
-Parse and store the information in a timing record.
+Ask for the records, and it will go through the input source, chunking the lines
+that are in timing records, and ignoring the other lines.
 
-So far, we are ignoring the stack trace.
+A timing record looks like this (including the blank line at the end), or the 
+stack trace may be omitted:
 
-The record looks like this (including the blank line at the end):
+------------------------------------------------------------------------------
 
 2017-10-02 11:43:35,773 INFO  [RDFServiceLogger]    0.002 sparqlConstructQuery [CONSTRUCT {      <http://scholars.cornell.edu/individual/bogusGuy> ?p ?value  } WHERE {      GRAPH ?g {          <http://scholars.cornell.edu/individual/bogusGuy> ?p ?value      }      FILTER (?g != <http://vitro.mannlib.cornell.edu/default/vitro-kb-inf>) }  ]    edu.cornell.mannlib.vitro.webapp.rdfservice.impl.logging.LoggingRDFService.sparqlConstructQuery(LoggingRDFService.java:53) 
    edu.cornell.mannlib.vitro.webapp.reasoner.ABoxRecomputer.getAssertions(ABoxRecomputer.java:317) 
@@ -28,34 +30,73 @@ The record looks like this (including the blank line at the end):
    org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:303) 
    ...
 
-Or, it may contain only the first line, with no stack trace.
-
-What if we are paying attention to stack traces and a record doesn't have one?
-
 =end
 
 module VivoQueryTimingsAnalyzer
-  class TimingRecord
-    attr_reader :start_time
-    attr_reader :end_time
-    attr_reader :duration
-    attr_reader :query
-    
-    def initialize(str)
-      match = /^([-:,\s\d]+)
-               .*\[RDFServiceLogger\]\s+
-               ([.\d]+)
-               .*
-               (\[.*\])
-              /x.match(str)
-      @end_time = DateTime.strptime(match[1], "%Y-%m-%d %H:%M:%S,%L")
-      @duration = match[2].to_f
-      @start_time = @end_time - (@duration / 86400.0)
-      @query = match[3]
+  class RawRecordTokenizer
+    def initialize(input_source)
+      @input_source = input_source
+      @buffer = []
     end
     
-    def to_s
-      "TimingRecord[start_time=#{@start_time.strftime("%D %T.%L")}, end_time=#{@end_time.strftime("%D %T.%L")}, duration=#{@duration}, query=#{@query}"
+    def records(&block)
+      @block = block
+      @input_source.lines do |line|
+        @line = line
+        if not_in_a_timing_record
+          if timing_record_begins
+            start_new_record
+          else
+            ignore_the_line
+          end
+        else # in a timing record
+          if timing_record_continues
+            add_line_to_record
+          else
+            dump_timing_record
+            unget_the_line
+          end
+        end
+      end
+      
+      # any left over?
+      dump_timing_record
+    end
+    
+    def not_in_a_timing_record
+      @buffer.empty?
+    end
+    
+    def timing_record_begins
+      /\[RDFServiceLogger\]/ =~ @line
+    end
+    
+    def start_new_record
+      @buffer = [@line]
+    end
+    
+    def ignore_the_line
+      # ignored
+    end
+    
+    def timing_record_continues
+      /^\s+/ =~ @line
+    end
+    
+    def add_line_to_record
+      @buffer << @line
+    end
+    
+    def dump_timing_record
+      if !@buffer.empty?
+        @block.call(@buffer.join)
+        @buffer = []
+      end
+    end
+    
+    def unget_the_line
+      @input_source.unget(@line)
     end
   end
 end
+

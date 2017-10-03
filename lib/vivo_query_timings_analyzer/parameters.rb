@@ -1,3 +1,12 @@
+=begin
+
+Read the command line parameters and make them available to the rest of the 
+code.
+
+For now, just accept the specifier for the input files.
+
+=end
+
 module VivoQueryTimingsAnalyzer
   class Parameters
     attr_reader :label

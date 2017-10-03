@@ -1,3 +1,41 @@
+=begin
+
+Group the queries by their canonical forms, and create a report that summarizes
+how many of each form were issued and how long they took.
+
+The report looks like this:
+
+-------------------------------------------------------------------------------
+
+Analysis of '/Users/jeb228/Development/Scholars/reasoner/first_assessment/journals_graph/add_journals/scholars.all.log'
+
+Start time:    11:49:57.591
+End time:      11:52:52.294
+Elapsed time:  00:02:54.703 (174.703)
+Query time:    00:02:47.545 (167.545)
+
+
+            Total Time  Occurences  Average Time  Minimum  Maximum
+form   1:      41.827        8814         0.005     0.002    5.890
+form   2:      13.403        8814         0.002     0.000    2.409
+form   3:      53.422        8814         0.006     0.000    5.916
+form   4:      58.893          18         3.272     1.770    5.779
+TOTAL:        167.545       26460         0.006
+
+form   1:
+[CONSTRUCT { ?url1 ?p ?value } WHERE { GRAPH ?g { ?url1 ?p ?value } FILTER (?g != ?url2) } ]
+
+form   2:
+[CONSTRUCT { ?url1 ?inv ?value } WHERE { GRAPH ?gr { ?value ?prop ?url1 } FILTER (isURI(?value)) FILTER (?gr != ?url2) { ?prop ?url3 ?inv } UNION { ?inv ?url3 ?prop } } ]
+
+form   3:
+[CONSTRUCT { ?url1 ?p ?o . } WHERE { GRAPH ?url2 { ?url1 ?p ?o . } } ]
+
+form   4:
+[]]]
+
+=end
+
 module VivoQueryTimingsAnalyzer
   attr_reader :parameters
   attr_reader :stats
@@ -24,14 +62,17 @@ module VivoQueryTimingsAnalyzer
     end
     
     def write
+      puts
       puts @parameters.label
+      puts
+      
       puts
       puts "Start time:    %s" % @stats.start_time.strftime("%T.%L")
       puts "End time:      %s" % @stats.end_time.strftime("%T.%L")
       puts "Elapsed time:  %s" % format_interval(@stats.elapsed)
       puts "Query time:    %s" % format_interval(@stats.query_total)
-
       puts
+
       puts
       puts "            Total Time  Occurences  Average Time  Minimum  Maximum"
       keys = @stats.forms.keys.sort
@@ -40,11 +81,8 @@ module VivoQueryTimingsAnalyzer
         average = form.count == 0 ? 0.0 : form.total / form.count
         puts "form %3d: %11.3f %11d %13.3f %9.3f %8.3f" % [i + 1, form.total, form.count, average, form.minimum, form.maximum]  
       end
-      
-      total_time = @stats.forms.values.inject(0.0) { |sum, form| sum += form.total }
-      total_count = @stats.forms.values.inject(0) { |sum, form| sum += form.count }
-      total_average = total_count == 0 ? 0.0 : total_time / total_count
       puts "TOTAL: %14.3f %11d %13.3f" % [total_time, total_count, total_average]
+      puts
       
       keys.each_index do |i|
         form = @stats.forms.values[i]
@@ -54,36 +92,17 @@ module VivoQueryTimingsAnalyzer
       end
       puts 
     end
+    
+    def total_time
+      @stats.forms.values.inject(0.0) { |sum, form| sum += form.total }
+    end
+    
+    def total_count
+      total_count = @stats.forms.values.inject(0) { |sum, form| sum += form.count }
+    end
+    
+    def total_average
+      total_average = total_count == 0 ? 0.0 : total_time / total_count
+    end
   end
 end
-
-=begin
-Label is the way that it will be known
-
-Start time:    12:00:00.000
-End time:      12:00:00.000
-Elapsed time:   0:00:00.000 (0,000,000.000)
-Query time:     0:00:00.000 (  000,000.000)
-
-
-            Total Time  Occurences  Average Time  Maximum  Minimum
-form   1:     000.000       12345       000.000   000.000  000.000
-form   2:     000.000       12345       000.000   000.000  000.000
-TOTAL:       0000.000      123456       000.000
-
-
-Form   1:
-SELECT blah blah blah
-
-Form.  2:
-PREFIX this that the other all in one line.
-
-
-
-----------------------------------
-
-Parameters.label
-
-CanonicalQueryStats.forms, start, end, elapsed, query_total
-CanonicalQueryStats::Form.query, count, total
-=end

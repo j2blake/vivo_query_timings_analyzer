@@ -1,3 +1,18 @@
+=begin
+
+Summarize a collection of timing records, based on the canonical form of their 
+queries.
+
+To obtain the canonical form of a query:
+  1) remove any prefix statements
+  2) replace URIs with placeholders
+  3) condense white space
+
+Two queries will have the same canonical form if their only differences are
+white space and the URIs they hold.
+
+=end
+
 module VivoQueryTimingsAnalyzer
   class CanonicalQueryStats
     
