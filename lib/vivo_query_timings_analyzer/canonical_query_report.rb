@@ -85,7 +85,7 @@ module VivoQueryTimingsAnalyzer
       puts
       
       keys.each_index do |i|
-        form = @stats.forms.values[i]
+        form = @stats.forms[keys[i]]
         puts 
         puts "form %3d:" % (i + 1)
         puts  form.canonical_query
